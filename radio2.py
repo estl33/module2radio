@@ -14,7 +14,7 @@ def main():
     player = None
     list_player = None
     url = "http://144.217.192.113:8120/mount"
-#    url = "http://stream1.chantefrance.com/Chante_France.m3u"
+#   url = "http://stream1.chantefrance.com/Chante_France.m3u"
     ext = (url.rpartition(".")[2])[:3]
     if ext in playlists:
         if list_player != None: list_player.stop()
@@ -54,9 +54,9 @@ def main():
     print "Calendar:"
     print cal
     while 1:
-#	r = requests.get("https://api.myjson.com/bins/pdgpr")
-#	command = r.content
-	command = ser.readline()
+	r = requests.get("https://api.myjson.com/bins/pdgpr")
+	command = r.content
+#	command = ser.readline()
 	command = command.replace("mssg:","")
         print(command)
 	if(command != ''):
@@ -72,13 +72,43 @@ def main():
 	  		Media_list = Instance.media_list_new([url])
 	      		Media.get_mrl()
        			player.set_media(Instance.media_new(url)) #Media)	
-	        if status == True:
+	        	song = j['currentSong']
+			imUrl = song['imageUrl'] 
+			imagecolor(imUrl)
+		if status == True:
 	#           list_player.play()
         	    player.play()
  	 	elif status == False:
 	#	    list_player.pause()
         	    player.pause()
 #	player.play()
+
+def imageColor(url):
+	NUM_CLUSTERS = 5
+
+	print 'reading image'
+	#im = Image.open(urllib.urlopen('https://lastfm-img2.akamaized.net/i/u//300x300/32db4097dab14019c084f5c5514337f1.png'))
+	im = Image.open(urllib.urlopen('https://static1.squarespace.com/static/588bab1086e6c0ffe0e62b3a/588bbb3459cc68c61c882d1c/588de2009f74563ea54ab42c/1485693441134/light+blue.jpg?format=500w'))
+
+	im = im.resize((100, 100))      # optional, to reduce time
+	ar = np.asarray(im)
+	shape = ar.shape
+	ar = ar.reshape(scipy.product(shape[:2]), shape[2]).astype(float)
+
+	print 'finding clusters'
+	codes, dist = scipy.cluster.vq.kmeans(ar, NUM_CLUSTERS)
+	#print 'cluster centres:\n', codes
+
+	vecs, dist = scipy.cluster.vq.vq(ar, codes)         # assign codes
+	counts, bins = scipy.histogram(vecs, len(codes))    # count occurrences
+
+	index_max = scipy.argmax(counts)                    # find most frequent
+	peak = codes[index_max]
+	colour = ''.join(chr(int(c)) for c in peak).encode('hex')
+
+        print 'most frequent colour: (#%s)' % (colour)
+#	print 'most frequent is %s (#%s)' % (peak, colour)
+
 if __name__ == "__main__":
     main()
 
