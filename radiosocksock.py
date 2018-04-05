@@ -1,3 +1,4 @@
+
 import serial
 import io
 import requests
@@ -8,6 +9,7 @@ import calendar
 import time
 from time import sleep
 import websocket
+from PIL import Image
 try:
     import thread
 except ImportError:
@@ -18,7 +20,7 @@ playlists = set(['pls','m3u'])
 Instance = vlc.Instance()
 player = None
 list_player = None
-url = "http://144.217.192.113:8120/mount"
+url = "http://174.37.159.206:8262/stream"
 ext = (url.rpartition(".")[2])[:3]
 if ext in playlists:
     if list_player != None: list_player.stop()
@@ -37,7 +39,8 @@ else:
         test_pass = False
     else:
         if test_pass:
-            player = Instance.media_player_new()
+            print 'test passed'
+	    player = Instance.media_player_new()
             Media = Instance.media_new(url)
             Media_list = Instance.media_list_new([url])
             Media.get_mrl()
@@ -53,19 +56,13 @@ else:
         else:
             print('error getting the audio')
     now = datetime.datetime.now()
-    print now.strftime("%Y-%m-%d %H:%M")
-    print time.time()
-    #ser.write(time.time())
-    cal = calendar.month(2018,4)
-    print "Calendar:"
-    print cal
-    headers = {
-    "User-Agent": "de1",
-    "userId": "5ac3cf9f8ac834137ba00c3b"
-    }
-
-    player.pause()	
+    ftime = str(now.strftime("%Y-%m-%d %H:%M"))
+    ser.write('time: '+ ftime + '\n')
+   	
 def on_message(ws, command):
+		ftime = str(now.strftime("%Y-%m-%d %H:%M"))
+		ser.write('time: ' + ftime + '\n')
+		
 		global url
 		global Media
 		global player
@@ -73,34 +70,62 @@ def on_message(ws, command):
 		print(command)
 		if(command != ''):
 		    j = json.loads(command)
-		    status = j['isPlaying']
+		    data = {}
+		    status = int(j['isPlaying'] == True)
+		    data['status'] = status
+		    volume = j['currentVolume']
+		    data['volume'] = volume
+		    song = j['currentSong']
+		    data['artist'] = song['name']
+		    data['title'] = song['title']
+		    station = j['currentStation']
+		    data['stationName'] = station['name']
+		    data['genre'] = station['genre']
+		    country = station['country']
+		    data['country'] = country['name']
+		    print(data)
+		    delimString = ''
+		    for key, value in data.iteritems():
+			delimString += key + ':' + str(value) + '\n'
+		    delimSTring = delimString[:-1]
+		    print(delimString)
+		    json_data = json.dumps(data)
+		    print(json_data)
+		    
+		    ser.write(delimString)
+		    ser.write('\n')
+		    
 		    if j['currentStreamUrl'] != url:
-			player.pause()
+			player.stop()
 			url = j['currentStreamUrl']
 			print(status)
 			print(url)
+			
+		#	player = vlc.MediaPlayer(vlc.Instance("--video-filter=invert"))
+		#	player.set_mrl(sys.argv[1])
+
 			player = Instance.media_player_new()
 	 		Media = Instance.media_new(url)
-	  	#	Media_list = Instance.media_list_new([url])
+	  		Media_list = Instance.media_list_new([url])
 	      		Media.get_mrl()
-       			player.set_media(Instance.media_new(url)) #Media)	
+       			player.set_media(Instance.media_new(url))
 	        	song = j['currentSong']
-		#	imUrl = song['imageUrl']
-		#	if (imUrl != ''): 
-		#		imageColor(imUrl)
-			player.play()
+		
+			imUrl = song['imageUrl']
+			if (imUrl != ''): 
+				imageColor(imUrl)
+			#player.play()
 		    if status == True:
-	#               list_player.play()
-        	        player.play()
- 	 	    elif status == False:
-	#	        list_player.pause()
-        	        player.pause()
+	       	        player.play()
+ 	 	    #	player.audio_set_volume(volume)
+		    elif status == False:
+	       	        player.stop()
 
 def on_error(ws, error):
 	print(error)
 
 def on_close(ws):
-	print("### closed ###")
+	print("### closed /###")
 		
 websocket.enableTrace(True)
 ws = websocket.WebSocketApp("ws://ec2-54-201-183-2.us-west-2.compute.amazonaws.com:8080/sock",
@@ -115,24 +140,22 @@ def imageColor(url):
 
 	print 'reading image'
 	#im = Image.open(urllib.urlopen('https://lastfm-img2.akamaized.net/i/u//300x300/32db4097dab14019c084f5c5514337f1.png'))
-	im = Image.open(urllib.urlopen('https://static1.squarespace.com/static/588bab1086e6c0ffe0e62b3a/588bbb3459cc68c61c882d1c/588de2009f74563ea54ab42c/1485693441134/light+blue.jpg?format=500w'))
+	im = Image.open(urllib.urlopen(url))
 
-	im = im.resize((100, 100))      # optional, to reduce time
+	im = im.resize((100, 100))      
 	ar = np.asarray(im)
 	shape = ar.shape
 	ar = ar.reshape(scipy.product(shape[:2]), shape[2]).astype(float)
 
 	print 'finding clusters'
 	codes, dist = scipy.cluster.vq.kmeans(ar, NUM_CLUSTERS)
-	#print 'cluster centres:\n', codes
 
-	vecs, dist = scipy.cluster.vq.vq(ar, codes)         # assign codes
-	counts, bins = scipy.histogram(vecs, len(codes))    # count occurrences
+	vecs, dist = scipy.cluster.vq.vq(ar, codes)         
+	counts, bins = scipy.histogram(vecs, len(codes))    
 
 	index_max = scipy.argmax(counts)                    # find most frequent
 	peak = codes[index_max]
 	colour = ''.join(chr(int(c)) for c in peak).encode('hex')
 
         print 'most frequent colour: (#%s)' % (colour)
-#	print 'most frequent is %s (#%s)' % (peak, colour)
 
