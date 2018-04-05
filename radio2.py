@@ -13,8 +13,8 @@ def main():
     Instance = vlc.Instance()
     player = None
     list_player = None
-    url = "http://144.217.192.113:8120/mount"
-#   url = "http://stream1.chantefrance.com/Chante_France.m3u"
+    url = '' #http://144.217.192.113:8120/mount"
+ #   url = "http://stream1.chantefrance.com/Chante_France.m3u"
     ext = (url.rpartition(".")[2])[:3]
     if ext in playlists:
         if list_player != None: list_player.stop()
@@ -50,21 +50,29 @@ def main():
     now = datetime.datetime.now()
     print now.strftime("%Y-%m-%d %H:%M")
     print time.time()
+    #ser.write(time.time())
     cal = calendar.month(2018,4)
     print "Calendar:"
     print cal
+    headers = {
+    "User-Agent": "de1",
+    "userId": "5ac3cf9f8ac834137ba00c3b"
+    }
     while 1:
-	r = requests.get("https://api.myjson.com/bins/pdgpr")
+	print("In while loop")
+#	r = requests.get("https://api.myjson.com/bins/pdgpr")
+#	command = r.content
+	r = requests.get("http://ec2-54-201-183-2.us-west-2.compute.amazonaws.com:8080/stream",headers=headers)
 	command = r.content
 #	command = ser.readline()
+	print("We got here!")
 	command = command.replace("mssg:","")
         print(command)
 	if(command != ''):
 		j = json.loads(command)
 		status = j['isPlaying']
-		station = j['currentStation']
-		if station['streamUrl'] != url:
-			url = station['streamUrl']
+		if j['currentStreamUrl'] != url:
+			url = j['currentStreamUrl']
 			print(status)
 			print(url)
 			player = Instance.media_player_new()
@@ -73,8 +81,9 @@ def main():
 	      		Media.get_mrl()
        			player.set_media(Instance.media_new(url)) #Media)	
 	        	song = j['currentSong']
-			imUrl = song['imageUrl'] 
-			imagecolor(imUrl)
+		#	imUrl = song['imageUrl']
+		#	if (imUrl != ''): 
+		#		imageColor(imUrl)
 		if status == True:
 	#           list_player.play()
         	    player.play()
@@ -82,6 +91,8 @@ def main():
 	#	    list_player.pause()
         	    player.pause()
 #	player.play()
+
+
 
 def imageColor(url):
 	NUM_CLUSTERS = 5
